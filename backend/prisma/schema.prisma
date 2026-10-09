@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Rapat {
+  id           Int           @id @default(autoincrement())
+  namaRapat    String
+  hariTanggal  DateTime
+  waktu        String
+  tempat       String
+  status       String        @default("BERLANGSUNG")
+  qrCodeUrl    String?       @db.Text
+  absensiToken String        @unique
+  created_at   DateTime      @default(now())
+  
+  notulens     Notulen[]
+  dokumentasis Dokumentasi[]
+  pesertas     Peserta[]
+  email_logs   EmailLog[]
+}
+
+model Notulen {
+  id             Int      @id @default(autoincrement())
+  rapat_id       Int
+  pimpinan       String
+  isi_rapat      String   @db.LongText
+  sudahDikirim   Boolean  @default(false)
+  created_at     DateTime @default(now())
+  rapat          Rapat    @relation(fields: [rapat_id], references: [id], onDelete: Cascade)
+}
+
+model Dokumentasi {
+  id         Int             @id @default(autoincrement())
+  rapat_id   Int
+  tipe       String
+  url_file   String          @db.Text
+  created_at DateTime        @default(now())
+  rapat      Rapat           @relation(fields: [rapat_id], references: [id], onDelete: Cascade)
+}
+
+model Peserta {
+  id              Int        @id @default(autoincrement())
+  rapat_id        Int
+  nama            String
+  jabatan         String
+  instansi        String
+  noHp            String
+  email           String
+  ttdDigitalUrl   String     @db.Text
+  created_at      DateTime   @default(now())
+  
+  rapat           Rapat      @relation(fields: [rapat_id], references: [id], onDelete: Cascade)
+  email_logs      EmailLog[]
+}
+
+model EmailLog {
+  id          Int         @id @default(autoincrement())
+  rapat_id    Int
+  peserta_id  Int
+  status      String      @default("PENDING")
+  errorMsg    String?     @db.Text
+  waktu_kirim DateTime    @default(now())
+  
+  rapat       Rapat       @relation(fields: [rapat_id], references: [id], onDelete: Cascade)
+  peserta     Peserta     @relation(fields: [peserta_id], references: [id], onDelete: Cascade)
+}
