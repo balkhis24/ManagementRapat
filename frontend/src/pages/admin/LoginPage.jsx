@@ -97,7 +97,7 @@ const LoginPage = () => {
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-6 sm:px-10 lg:px-16 py-6 lg:py-10">
         <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-          
+
           {/* Left Column: Greeting & Feature Highlights */}
           <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center text-left py-2">
             <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold text-white leading-[1.2] drop-shadow-md tracking-tight">
@@ -246,15 +246,6 @@ const LoginPage = () => {
                   )}
                 </button>
               </form>
-
-              {/* Bottom Divider */}
-              <div className="mt-7 flex items-center justify-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
-                  Hanya untuk petugas yang berwenang
-                </span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
             </div>
           </div>
 

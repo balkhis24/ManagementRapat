@@ -484,18 +484,25 @@ const NotulenPage = () => {
           if (notulenRes.data) {
             setPimpinan(notulenRes.data.pimpinan || '');
             if (editor && notulenRes.data.isi_rapat) {
-              editor.commands.setContent(notulenRes.data.isi_rapat);
+              try {
+                editor.commands.setContent(notulenRes.data.isi_rapat);
+              } catch (e) {
+                console.warn('Gagal set content editor:', e);
+              }
             }
             setHasNotulen(true);
+          } else {
+            // Belum ada draft notulen untuk rapat ini
+            setHasNotulen(false);
           }
         } catch (notulenErr) {
-          // 404 = belum ada notulen → oke, mulai dari kosong
+          // Hanya tangani sebagai error nyata jika response ada dan bukan 404
           setHasNotulen(false);
-          if (notulenErr.response?.status !== 404) {
+          if (notulenErr.response && notulenErr.response.status !== 404) {
             toast.error('Gagal memuat draft notulen');
           }
         }
-      } catch (err) {
+      } catch (_err) {
         toast.error('Gagal memuat data rapat');
         navigate('/admin/rapat');
       } finally {

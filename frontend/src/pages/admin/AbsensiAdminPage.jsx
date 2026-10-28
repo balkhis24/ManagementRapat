@@ -7,7 +7,6 @@ import {
   Download,
   Printer,
   Users,
-  User,
   Calendar,
   Clock,
   MapPin,
@@ -51,7 +50,7 @@ const AbsensiAdminPage = () => {
         ]);
         setRapat(rapatRes.data);
         setPesertaList(pesertaRes.data);
-      } catch (err) {
+      } catch (_err) {
         toast.error('Gagal memuat data rapat');
         navigate('/admin/rapat');
       } finally {
@@ -77,7 +76,7 @@ const AbsensiAdminPage = () => {
           }
           return res.data;
         });
-      } catch (err) {
+      } catch (_err) {
         // silent catch on background polling
       }
     }, 8000);

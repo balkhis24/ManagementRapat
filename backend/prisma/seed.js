@@ -9,16 +9,32 @@ async function main() {
   console.log('--- Memulai Seeding Database management_rapat ---');
 
   // 1. Seed Admin
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const hashedPasswordAdmin = await bcrypt.hash('admin123', 10);
   const admin = await prisma.admin.upsert({
     where: { username: 'admin' },
-    update: { password: hashedPassword },
+    update: { password: hashedPasswordAdmin, role: 'ADMIN', nama: 'Administrator Utama' },
     create: {
       username: 'admin',
-      password: hashedPassword,
+      password: hashedPasswordAdmin,
+      role: 'ADMIN',
+      nama: 'Administrator Utama',
     },
   });
-  console.log(`[+] Admin: ${admin.username} (password: admin123)`);
+  console.log(`[+] Admin: ${admin.username} (role: ${admin.role}, password: admin123)`);
+
+  // 1b. Seed Notulis
+  const hashedPasswordNotulis = await bcrypt.hash('notulis123', 10);
+  const notulis = await prisma.admin.upsert({
+    where: { username: 'notulis' },
+    update: { password: hashedPasswordNotulis, role: 'NOTULIS', nama: 'Notulis Sidang/Rapat' },
+    create: {
+      username: 'notulis',
+      password: hashedPasswordNotulis,
+      role: 'NOTULIS',
+      nama: 'Notulis Sidang/Rapat',
+    },
+  });
+  console.log(`[+] Notulis: ${notulis.username} (role: ${notulis.role}, password: notulis123)`);
 
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 

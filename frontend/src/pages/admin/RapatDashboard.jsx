@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import {
   Plus,
@@ -28,6 +29,10 @@ import {
   Megaphone,
   UserPlus,
   Building2,
+  QrCode,
+  Copy,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -36,7 +41,7 @@ import AdminSidebar from '../../components/AdminSidebar';
 const RapatDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { admin, logout } = useAuth();
+  const { admin, logout, isNotulis } = useAuth();
 
   // Navigation / View State
   const [currentView, setCurrentView] = useState('beranda'); // 'beranda' or 'jadwal'
@@ -44,6 +49,7 @@ const RapatDashboard = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('SEMUA'); // 'SEMUA' | 'BERLANGSUNG' | 'SELESAI'
 
   // Data State
   const [rapatList, setRapatList] = useState([]);
@@ -51,10 +57,16 @@ const RapatDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // QR Code Modal State
+  const [qrModalRapat, setQrModalRapat] = useState(null);
+  const [qrCopied, setQrCopied] = useState(false);
+  const qrCanvasRef = useRef(null);
+  const [activeDropdownId, setActiveDropdownId] = useState(null);
+
   // Calendar State
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(9); // Oktober (0-indexed = 9)
-  const [currentYear, setCurrentYear] = useState(2025);
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState(8);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(() => new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(() => new Date().getDate());
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -157,6 +169,17 @@ const RapatDashboard = () => {
 
   useEffect(() => {
     fetchRapat();
+  }, []);
+
+  // Tutup dropdown aksi saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.action-dropdown-container')) {
+        setActiveDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Sync url param
@@ -323,85 +346,161 @@ const RapatDashboard = () => {
     }
   };
 
+  const handleDownloadQrPng = () => {
+    const canvas = qrCanvasRef.current?.querySelector('canvas');
+    if (!canvas || !qrModalRapat) return;
+    const pngUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = pngUrl;
+    link.download = `QR_Absensi_${(qrModalRapat.namaRapat || 'Rapat').replace(/\s+/g, '_')}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('QR Code berhasil diunduh!');
+  };
+
+  const handleCopyAbsensiLink = (url) => {
+    navigator.clipboard.writeText(url);
+    setQrCopied(true);
+    toast.success('Tautan absensi disalin ke clipboard!');
+    setTimeout(() => setQrCopied(false), 2000);
+  };
+
+  const totalRapatCount = rapatList.length;
+  const activeRapatCount = rapatList.filter((r) => r.status === 'BERLANGSUNG').length;
+  const closedRapatCount = rapatList.filter((r) => r.status === 'SELESAI').length;
+  const notulenCount = rapatList.filter((r) => r.notulens && r.notulens.length > 0).length;
+
   // Calendar dates generation
   const monthNames = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
   ];
 
-  // Calendar days matching October 2025 in the screenshot
-  const calendarDays = [
-    { day: 29, isCurrentMonth: false },
-    { day: 30, isCurrentMonth: false },
-    { day: 1, isCurrentMonth: true },
-    { day: 2, isCurrentMonth: true },
-    { day: 3, isCurrentMonth: true },
-    { day: 4, isCurrentMonth: true },
-    { day: 5, isCurrentMonth: true },
-    { day: 6, isCurrentMonth: true, hasDot: 'blue' },
-    { day: 7, isCurrentMonth: true },
-    { day: 8, isCurrentMonth: true, isToday: true },
-    { day: 9, isCurrentMonth: true },
-    { day: 10, isCurrentMonth: true },
-    { day: 11, isCurrentMonth: true },
-    { day: 12, isCurrentMonth: true },
-    { day: 13, isCurrentMonth: true },
-    { day: 14, isCurrentMonth: true },
-    { day: 15, isCurrentMonth: true },
-    { day: 16, isCurrentMonth: true, hasDot: 'green' },
-    { day: 17, isCurrentMonth: true, hasDot: 'green' },
-    { day: 18, isCurrentMonth: true, hasDot: 'green' },
-    { day: 19, isCurrentMonth: true },
-    { day: 20, isCurrentMonth: true },
-    { day: 21, isCurrentMonth: true },
-    { day: 22, isCurrentMonth: true },
-    { day: 23, isCurrentMonth: true, hasDot: 'green' },
-    { day: 24, isCurrentMonth: true, hasDot: 'green' },
-    { day: 25, isCurrentMonth: true, hasDot: 'green' },
-    { day: 26, isCurrentMonth: true, hasDot: 'blue' },
-    { day: 27, isCurrentMonth: true },
-    { day: 28, isCurrentMonth: true },
-    { day: 29, isCurrentMonth: true, hasDot: 'blue' },
-    { day: 30, isCurrentMonth: true, hasDot: 'green' },
-    { day: 31, isCurrentMonth: true, hasDot: 'green' },
-    { day: 1, isCurrentMonth: false },
-    { day: 2, isCurrentMonth: false },
-  ];
+  const isMatchingMeetingDate = (rawDate, targetDateStr, targetYear, targetMonth, targetDay) => {
+    if (!rawDate) return false;
+    try {
+      const str = String(rawDate);
+      if (str.startsWith(targetDateStr)) return true;
 
-  // Upcoming meetings list
-  const upcomingMeetings = [
-    {
-      dateNum: '08',
-      dateMonth: 'Okt',
-      title: 'Rapat Koordinasi Program Kerja 2025',
-      time: '09:00 – 11:00 WIB',
-      room: 'Ruang Rapat Utama',
-    },
-    {
-      dateNum: '10',
-      dateMonth: 'Okt',
-      title: 'Evaluasi Sistem Informasi Publik',
-      time: '13:00 – 15:00 WIB',
-      room: 'Ruang Rapat 1',
-    },
-    {
-      dateNum: '14',
-      dateMonth: 'Okt',
-      title: 'Rapat Persiapan Kegiatan Humas',
-      time: '10:00 – 12:00 WIB',
-      room: 'Ruang Rapat 2',
-    },
-    {
-      dateNum: '17',
-      dateMonth: 'Okt',
-      title: 'Rapat Internal Diskominfosantik',
-      time: '09:00 – 11:00 WIB',
-      room: 'Ruang Rapat 3',
-    },
-  ];
+      const d = new Date(rawDate);
+      if (isNaN(d.getTime())) return false;
+
+      // Local timezone match (WIB / user browser)
+      if (
+        d.getFullYear() === targetYear &&
+        d.getMonth() === targetMonth &&
+        d.getDate() === targetDay
+      ) {
+        return true;
+      }
+
+      // UTC date match
+      const isoDate = d.toISOString().slice(0, 10);
+      if (isoDate === targetDateStr) return true;
+
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const getCalendarDays = () => {
+    const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+    const firstDayIndex = new Date(currentYear, currentMonthIndex, 1).getDay(); // 0 is Sunday
+    // Convert to Monday start: Mon=0, Tue=1, ..., Sun=6
+    const startOffset = (firstDayIndex + 6) % 7;
+    const prevMonthDays = new Date(currentYear, currentMonthIndex, 0).getDate();
+
+    const days = [];
+    // Previous month padding
+    for (let i = startOffset - 1; i >= 0; i--) {
+      days.push({
+        day: prevMonthDays - i,
+        isCurrentMonth: false,
+      });
+    }
+
+    const today = new Date();
+    const isCurrentYearAndMonth =
+      today.getFullYear() === currentYear && today.getMonth() === currentMonthIndex;
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isToday = isCurrentYearAndMonth && today.getDate() === d;
+      
+      const dateStr = `${currentYear}-${String(currentMonthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const hasMeeting = rapatList.some((r) =>
+        isMatchingMeetingDate(r.hariTanggal, dateStr, currentYear, currentMonthIndex, d)
+      );
+
+      let hasDot = null;
+      if (hasMeeting) {
+        hasDot = isToday ? 'blue' : 'green';
+      }
+
+      days.push({
+        day: d,
+        isCurrentMonth: true,
+        isToday,
+        hasDot,
+        dateStr,
+      });
+    }
+
+    // Next month padding to fill grid
+    const remaining = (7 - (days.length % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+      days.push({
+        day: i,
+        isCurrentMonth: false,
+      });
+    }
+
+    return days;
+  };
+
+  const calendarDays = getCalendarDays();
+
+  // Upcoming meetings derived from rapatList or fallback
+  const upcomingMeetings = (() => {
+    if (rapatList.length === 0) return defaultRapat;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const activeOrFuture = rapatList.filter((r) => {
+      const d = r.hariTanggal ? new Date(r.hariTanggal) : null;
+      return r.status === 'BERLANGSUNG' || (d && d >= now);
+    });
+
+    const pool = activeOrFuture.length > 0 ? activeOrFuture : rapatList;
+    const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+    return pool
+      .slice()
+      .sort((a, b) => new Date(a.hariTanggal || 0) - new Date(b.hariTanggal || 0))
+      .slice(0, 4)
+      .map((r) => {
+        const d = r.hariTanggal ? new Date(r.hariTanggal) : new Date();
+        return {
+          id: r.id,
+          dateNum: String(d.getDate()).padStart(2, '0'),
+          dateMonth: monthShort[d.getMonth()] || 'Okt',
+          title: r.namaRapat,
+          time: `${r.waktu || '09:00 - 11:00'} WIB`,
+          room: r.tempat || 'Ruang Rapat Utama',
+          raw: r,
+        };
+      });
+  })();
 
   // Filtered rapat list for search & pagination
   const filteredRapat = rapatList.filter((r) => {
+    // Status filter
+    if (statusFilter !== 'SEMUA') {
+      if (r.status !== statusFilter) return false;
+    }
+    // Search query
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -592,9 +691,19 @@ const RapatDashboard = () => {
                 </div>
                 <div className="text-left hidden sm:block leading-tight">
                   <p className="text-xs font-bold text-gray-800">
-                    {admin?.name || (admin?.username === 'admin' ? 'Balkhis Mardiyah' : admin?.username) || 'Balkhis Mardiyah'}
+                    {admin?.nama || admin?.username || (isNotulis ? 'Notulis Sidang/Rapat' : 'Balkhis Mardiyah')}
                   </p>
-                  <p className="text-[11px] text-gray-400 font-medium">Admin</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
+                        isNotulis
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}
+                    >
+                      {isNotulis ? 'Notulis' : 'Admin'}
+                    </span>
+                  </div>
                 </div>
                 <ChevronDown size={14} className="text-gray-400 ml-0.5" />
               </button>
@@ -656,7 +765,7 @@ const RapatDashboard = () => {
             <div className="relative md:w-[460px] lg:w-[500px] shrink-0 overflow-hidden flex items-center justify-end">
               <div className="w-full h-48 md:h-full relative overflow-hidden">
                 <img
-                  src="/gedung-diskominfo.jpg"
+                  src="/gedung-bekasi.jpg"
                   alt="Gedung Diskominfosantik Kabupaten Bekasi"
                   className="w-full h-full object-cover object-center md:rounded-l-2xl shadow-inner"
                 />
@@ -670,7 +779,10 @@ const RapatDashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {/* Card 1: Total Rapat */}
             <div
-              onClick={() => setCurrentView('jadwal')}
+              onClick={() => {
+                setStatusFilter('SEMUA');
+                setCurrentView('jadwal');
+              }}
               className="bg-white rounded-2xl p-5 shadow-xs border border-gray-100 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
             >
               <div className="w-12 h-12 rounded-full bg-[#e8f3fc] text-[#0284c7] flex items-center justify-center shrink-0">
@@ -679,52 +791,58 @@ const RapatDashboard = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-gray-500">Total Rapat</p>
                 <h3 className="text-2xl font-bold text-gray-800 tracking-tight mt-0.5">
-                  24
+                  {totalRapatCount}
                 </h3>
                 <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                  <span>+3</span>
-                  <span className="text-[11px] font-medium text-gray-400">dari bulan lalu ↗</span>
+                  <span>Terdaftar</span>
+                  <span className="text-[11px] font-medium text-gray-400">di sistem</span>
                 </p>
               </div>
             </div>
 
-            {/* Card 2: Peserta Terdaftar */}
+            {/* Card 2: Rapat Berlangsung */}
             <div
-              onClick={() => setIsPesertaModalOpen(true)}
+              onClick={() => {
+                setStatusFilter('BERLANGSUNG');
+                setCurrentView('jadwal');
+              }}
               className="bg-white rounded-2xl p-5 shadow-xs border border-gray-100 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
             >
               <div className="w-12 h-12 rounded-full bg-[#e6f8ee] text-[#16a34a] flex items-center justify-center shrink-0">
-                <Users size={22} />
+                <CheckCircle size={22} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-gray-500">
-                  Peserta Terdaftar
+                  Sedang Berlangsung
                 </p>
-                <h3 className="text-2xl font-bold text-gray-800 tracking-tight mt-0.5">
-                  156
+                <h3 className="text-2xl font-bold text-emerald-600 tracking-tight mt-0.5">
+                  {activeRapatCount}
                 </h3>
                 <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                  <span>+12</span>
-                  <span className="text-[11px] font-medium text-gray-400">dari bulan lalu ↗</span>
+                  <span>Aktif</span>
+                  <span className="text-[11px] font-medium text-gray-400">absensi dibuka</span>
                 </p>
               </div>
             </div>
 
-            {/* Card 3: Ruang Rapat */}
+            {/* Card 3: Rapat Selesai */}
             <div
-              onClick={() => setIsMasterRuangOpen(true)}
+              onClick={() => {
+                setStatusFilter('SELESAI');
+                setCurrentView('jadwal');
+              }}
               className="bg-white rounded-2xl p-5 shadow-xs border border-gray-100 flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
             >
               <div className="w-12 h-12 rounded-full bg-[#f4edfc] text-[#9333ea] flex items-center justify-center shrink-0">
                 <Building2 size={22} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-500">Ruang Rapat</p>
+                <p className="text-xs font-medium text-gray-500">Rapat Selesai</p>
                 <h3 className="text-2xl font-bold text-gray-800 tracking-tight mt-0.5">
-                  5
+                  {closedRapatCount}
                 </h3>
-                <p className="text-xs text-gray-400 mt-1 font-medium">
-                  Tersedia 3 ruang
+                <p className="text-xs text-purple-600 mt-1 font-medium text-[11px]">
+                  Telah ditutup
                 </p>
               </div>
             </div>
@@ -742,11 +860,11 @@ const RapatDashboard = () => {
                   Notulen Tersimpan
                 </p>
                 <h3 className="text-2xl font-bold text-gray-800 tracking-tight mt-0.5">
-                  18
+                  {notulenCount}
                 </h3>
-                <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                  <span>+6</span>
-                  <span className="text-[11px] font-medium text-gray-400">dari bulan lalu</span>
+                <p className="text-xs font-semibold text-amber-600 flex items-center gap-1 mt-1">
+                  <span>Hasil Rapat</span>
+                  <span className="text-[11px] font-medium text-gray-400">terarsipkan</span>
                 </p>
               </div>
             </div>
@@ -772,18 +890,30 @@ const RapatDashboard = () => {
                       {monthNames[currentMonthIndex]} {currentYear}
                     </span>
                     <button
-                      onClick={() =>
-                        setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 11))
-                      }
+                      onClick={() => {
+                        if (currentMonthIndex === 0) {
+                          setCurrentMonthIndex(11);
+                          setCurrentYear((prev) => prev - 1);
+                        } else {
+                          setCurrentMonthIndex((prev) => prev - 1);
+                        }
+                      }}
                       className="p-0.5 hover:text-blue-600 cursor-pointer ml-1"
+                      title="Bulan sebelumnya"
                     >
                       <ChevronLeft size={13} />
                     </button>
                     <button
-                      onClick={() =>
-                        setCurrentMonthIndex((prev) => (prev < 11 ? prev + 1 : 0))
-                      }
+                      onClick={() => {
+                        if (currentMonthIndex === 11) {
+                          setCurrentMonthIndex(0);
+                          setCurrentYear((prev) => prev + 1);
+                        } else {
+                          setCurrentMonthIndex((prev) => prev + 1);
+                        }
+                      }}
                       className="p-0.5 hover:text-blue-600 cursor-pointer"
+                      title="Bulan berikutnya"
                     >
                       <ChevronRight size={13} />
                     </button>
@@ -805,11 +935,25 @@ const RapatDashboard = () => {
                 {/* Date Grid */}
                 <div className="grid grid-cols-7 gap-1 mt-1 text-center">
                   {calendarDays.map((item, idx) => {
+                    const isSelected = item.isCurrentMonth && item.day === selectedCalendarDay;
                     return (
                       <div
                         key={idx}
                         onClick={() => {
-                          if (item.isCurrentMonth) setSelectedCalendarDay(item.day);
+                          if (item.isCurrentMonth) {
+                            setSelectedCalendarDay(item.day);
+                            if (item.hasDot && item.dateStr) {
+                              const matching = rapatList.filter((r) =>
+                                isMatchingMeetingDate(r.hariTanggal, item.dateStr, currentYear, currentMonthIndex, item.day)
+                              );
+                              if (matching.length > 0) {
+                                toast.info(
+                                  `Agenda: ${matching.map((m) => m.namaRapat).join(', ')}`,
+                                  { icon: '📅' }
+                                );
+                              }
+                            }
+                          }
                         }}
                         className="py-1.5 flex flex-col items-center justify-center cursor-pointer group"
                       >
@@ -817,6 +961,8 @@ const RapatDashboard = () => {
                           className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all ${
                             item.isToday
                               ? 'bg-[#1a56db] text-white font-bold shadow-xs'
+                              : isSelected
+                              ? 'ring-2 ring-blue-500 bg-blue-50 text-blue-700 font-bold'
                               : !item.isCurrentMonth
                               ? 'text-gray-300'
                               : 'text-gray-700 font-medium group-hover:bg-slate-100'
@@ -1039,9 +1185,8 @@ const RapatDashboard = () => {
             </div>
           </div>
 
-          {/* ── 4. Detailed Agenda Rapat Table (Viewable when tab is 'jadwal' or on scroll) ── */}
-          {currentView === 'jadwal' && (
-            <div className="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 space-y-4 animate-in fade-in duration-200">
+          {/* ── 4. Detailed Agenda Rapat Table (Always visible for easy access & management) ── */}
+          <div id="jadwal-rapat-section" className="bg-white rounded-2xl p-6 shadow-xs border border-gray-100 space-y-4 animate-in fade-in duration-200">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-100">
                 <div>
                   <h3 className="text-base font-bold text-gray-900">
@@ -1059,18 +1204,53 @@ const RapatDashboard = () => {
                     <FileSpreadsheet size={15} />
                     <span>Export CSV</span>
                   </button>
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 flex items-center gap-1.5 shadow-sm shadow-blue-500/20 cursor-pointer ml-auto"
-                  >
-                    <Plus size={15} />
-                    <span>Tambah Rapat</span>
-                  </button>
+                  {!isNotulis && (
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 flex items-center gap-1.5 shadow-sm shadow-blue-500/20 cursor-pointer ml-auto"
+                    >
+                      <Plus size={15} />
+                      <span>Tambah Rapat</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
+              {/* Status Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
+                {[
+                  { key: 'SEMUA', label: 'Semua Rapat', count: totalRapatCount },
+                  { key: 'BERLANGSUNG', label: 'Sedang Berlangsung', count: activeRapatCount },
+                  { key: 'SELESAI', label: 'Selesai', count: closedRapatCount },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => {
+                      setStatusFilter(tab.key);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      statusFilter === tab.key
+                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                        : 'bg-slate-100 text-gray-600 hover:bg-slate-200/80 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                        statusFilter === tab.key
+                          ? 'bg-white/20 text-white'
+                          : 'bg-white text-gray-600 border border-gray-200'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
               {/* Table */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto min-h-[380px] pb-16">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase tracking-wider">
@@ -1083,7 +1263,15 @@ const RapatDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {currentItems.map((r, i) => (
+                    {currentItems.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="py-12 text-center text-gray-400">
+                          <Calendar size={36} className="mx-auto text-gray-300 mb-2" />
+                          <p className="font-bold text-gray-700 text-sm">Tidak ada jadwal rapat yang ditemukan</p>
+                          <p className="text-xs text-gray-400 mt-1">Coba sesuaikan kata kunci pencarian atau filter status rapat</p>
+                        </td>
+                      </tr>
+                    ) : currentItems.map((r, i) => (
                       <tr key={r.id} className="hover:bg-slate-50/60">
                         <td className="py-3 px-3 text-center font-bold text-gray-400">
                           {indexOfFirstItem + i + 1}
@@ -1118,37 +1306,139 @@ const RapatDashboard = () => {
                           </button>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="relative inline-block text-left action-dropdown-container">
+                            {/* Dropdown Toggle Button */}
                             <button
-                              title="Kelola Absensi"
-                              onClick={() => navigate(`/admin/rapat/${r.id}/absensi`)}
-                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveDropdownId(activeDropdownId === r.id ? null : r.id);
+                              }}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+                                activeDropdownId === r.id
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/25'
+                                  : 'bg-white text-gray-700 hover:bg-blue-50/70 hover:text-blue-700 border-gray-200 hover:border-blue-200 shadow-2xs'
+                              }`}
                             >
-                              <Eye size={15} />
+                              <span>Aksi</span>
+                              <ChevronDown
+                                size={13}
+                                className={`transition-transform duration-200 ${
+                                  activeDropdownId === r.id ? 'rotate-180 text-white' : 'text-gray-400'
+                                }`}
+                              />
                             </button>
-                            <button
-                              title="Edit Rapat"
-                              onClick={() => openEditModal(r)}
-                              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
-                            >
-                              <Edit size={15} />
-                            </button>
-                            {r.status !== 'SELESAI' && (
-                              <button
-                                title="Tandai Selesai"
-                                onClick={() => handleSelesai(r.id)}
-                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+
+                            {/* Dropdown Menu Items */}
+                            {activeDropdownId === r.id && (
+                              <div
+                                className={`absolute right-0 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 ${
+                                  i >= currentItems.length - 2 && currentItems.length > 2
+                                    ? 'bottom-full mb-1.5 origin-bottom-right'
+                                    : 'top-full mt-1.5 origin-top-right'
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <CheckCircle size={15} />
-                              </button>
+                                {/* 1. QR Code Presensi */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrModalRapat(r);
+                                    setActiveDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                    <QrCode size={13} />
+                                  </div>
+                                  <span>QR Code Presensi</span>
+                                </button>
+
+                                {/* 2. Rekap & Daftar Hadir */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigate(`/admin/rapat/${r.id}/absensi`);
+                                    setActiveDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                    <Eye size={13} />
+                                  </div>
+                                  <span>Daftar Hadir / Absensi</span>
+                                </button>
+
+                                {/* 3. Kelola Notulen */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigate(`/admin/rapat/${r.id}/notulen`);
+                                    setActiveDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                >
+                                  <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                                    <FileText size={13} />
+                                  </div>
+                                  <span>Kelola Notulen</span>
+                                </button>
+
+                                {/* Aksi Khusus Admin */}
+                                {!isNotulis && (
+                                  <>
+                                    <div className="my-1 border-t border-gray-100" />
+
+                                    {/* 4. Edit Rapat */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        openEditModal(r);
+                                        setActiveDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-slate-100 hover:text-gray-900 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    >
+                                      <div className="w-6 h-6 rounded-lg bg-slate-100 text-gray-600 flex items-center justify-center shrink-0">
+                                        <Edit size={13} />
+                                      </div>
+                                      <span>Edit Rapat</span>
+                                    </button>
+
+                                    {/* 5. Tandai Selesai */}
+                                    {r.status !== 'SELESAI' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleSelesai(r.id);
+                                          setActiveDropdownId(null);
+                                        }}
+                                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                      >
+                                        <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                          <CheckCircle size={13} />
+                                        </div>
+                                        <span>Tandai Selesai</span>
+                                      </button>
+                                    )}
+
+                                    {/* 6. Hapus Rapat */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleDelete(r.id);
+                                        setActiveDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                    >
+                                      <div className="w-6 h-6 rounded-lg bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                                        <Trash2 size={13} />
+                                      </div>
+                                      <span>Hapus Rapat</span>
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             )}
-                            <button
-                              title="Hapus Rapat"
-                              onClick={() => handleDelete(r.id)}
-                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                            >
-                              <Trash2 size={15} />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1181,7 +1471,6 @@ const RapatDashboard = () => {
                 </div>
               </div>
             </div>
-          )}
         </main>
       </div>
 
@@ -1305,6 +1594,60 @@ const RapatDashboard = () => {
                     className="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 ml-3"
                   >
                     Pilih
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Master Kategori Agenda ── */}
+      {isMasterKategoriOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4.5 border-b border-gray-100 flex justify-between items-center bg-slate-50/70">
+              <div className="flex items-center gap-2.5">
+                <FileText size={18} className="text-blue-600" />
+                <h3 className="font-bold text-base text-gray-800">
+                  Kategori Agenda Rapat Kedinasan
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsMasterKategoriOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200/50 cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6 space-y-2.5">
+              {[
+                { nama: 'Rapat Koordinasi Penerapan SPBE & Transformasi Digital', jenis: 'Teknologi & Informasi' },
+                { nama: 'Rapat Pleno Penyusunan Rencana Kerja (RKPD)', jenis: 'Perencanaan & Anggaran' },
+                { nama: 'Bimbingan Teknis Tanda Tangan Elektronik (TTE) Tersertifikasi', jenis: 'Pelatihan & Bimtek' },
+                { nama: 'Rapat Evaluasi Penyelenggaraan Pelayanan Publik & Satu Data', jenis: 'Evaluasi & Kinerja' },
+                { nama: 'Rapat Tanggap Insiden Keamanan Siber (CSIRT)', jenis: 'Keamanan Informasi' },
+              ].map((kat, i) => (
+                <div
+                  key={i}
+                  className="p-3.5 rounded-2xl border border-gray-150 hover:border-blue-500 bg-slate-50/50 flex items-center justify-between transition-colors"
+                >
+                  <div>
+                    <h4 className="font-bold text-xs text-gray-800">{kat.nama}</h4>
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700">
+                      {kat.jenis}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, namaRapat: kat.nama }));
+                      setIsMasterKategoriOpen(false);
+                      setIsModalOpen(true);
+                      toast.success(`Kategori dipilih: ${kat.nama}`);
+                    }}
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 ml-3"
+                  >
+                    Gunakan
                   </button>
                 </div>
               ))}
@@ -1633,6 +1976,134 @@ const RapatDashboard = () => {
                 >
                   Tutup
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Pop-up QR Code Interaktif ── */}
+      {qrModalRapat && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-50/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <QrCode size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-gray-900 leading-tight">
+                    QR Code Presensi Rapat
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Scan untuk daftar hadir digital
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setQrModalRapat(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200/50 cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 text-center">
+              {/* Meeting info badge */}
+              <div className="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-3.5 text-left text-xs space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-extrabold text-gray-900 text-sm line-clamp-1">
+                    {qrModalRapat.namaRapat}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 ${
+                      qrModalRapat.status === 'SELESAI'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}
+                  >
+                    {qrModalRapat.status}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5 text-gray-600 text-[11px] pt-1">
+                  <span>📅 {formatDate(qrModalRapat.hariTanggal)}</span>
+                  <span>⏰ {qrModalRapat.waktu} WIB</span>
+                  <span>📍 {qrModalRapat.tempat}</span>
+                </div>
+              </div>
+
+              {/* QR Code Canvas Frame */}
+              <div
+                ref={qrCanvasRef}
+                className="inline-block p-4 bg-white rounded-2xl border-2 border-gray-150 shadow-md mx-auto"
+              >
+                <QRCodeCanvas
+                  value={`${window.location.origin}/absensi/${qrModalRapat.absensiToken}`}
+                  size={210}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+
+              <p className="text-[11px] text-gray-500 leading-relaxed px-2">
+                Tampilkan QR Code ini di proyektor rapat atau cetak untuk diletakkan di meja registrasi peserta.
+              </p>
+
+              {/* Copy URL Box */}
+              <div className="space-y-1 text-left">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                  Tautan Langsung Presensi:
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/absensi/${qrModalRapat.absensiToken}`}
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs text-gray-700 select-all outline-none"
+                  />
+                  <button
+                    onClick={() =>
+                      handleCopyAbsensiLink(
+                        `${window.location.origin}/absensi/${qrModalRapat.absensiToken}`
+                      )
+                    }
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-gray-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                  >
+                    {qrCopied ? (
+                      <>
+                        <CheckCircle size={14} className="text-emerald-600" />
+                        <span className="text-emerald-600">Disalin</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Salin Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+                <button
+                  onClick={handleDownloadQrPng}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                >
+                  <Download size={15} />
+                  <span>Unduh QR (PNG)</span>
+                </button>
+                <a
+                  href={`/absensi/${qrModalRapat.absensiToken}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-gray-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <ExternalLink size={15} />
+                  <span>Buka Form</span>
+                </a>
               </div>
             </div>
           </div>

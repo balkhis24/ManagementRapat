@@ -1,0 +1,13 @@
+{
+  "name": "management-rapat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem Manajemen Rapat & Daftar Hadir Digital - Pemerintah Kabupaten Bekasi",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "start:backend": "npm --prefix backend start",
+    "build:frontend": "npm --prefix frontend run build",
+    "seed": "node backend/prisma/seed.js"
+  }
+}

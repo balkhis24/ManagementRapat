@@ -32,10 +32,10 @@ router.use(authMiddleware);
 
 router.get('/', getAllRapat);
 router.get('/:id', getRapatById);
-router.post('/', createRapat);
-router.put('/:id', updateRapat);
-router.patch('/:id/selesai', tandaiSelesai);
-router.delete('/:id', deleteRapat);
+router.post('/', authMiddleware.requireRole(['ADMIN']), createRapat);
+router.put('/:id', authMiddleware.requireRole(['ADMIN']), updateRapat);
+router.patch('/:id/selesai', authMiddleware.requireRole(['ADMIN']), tandaiSelesai);
+router.delete('/:id', authMiddleware.requireRole(['ADMIN']), deleteRapat);
 
 // Endpoint Peserta per Rapat
 router.get('/:id/peserta', getPesertaByRapat);

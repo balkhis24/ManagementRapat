@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   Home,
   Calendar,
@@ -9,6 +10,7 @@ import {
   BarChart3,
   Settings,
   X,
+  Tag,
 } from 'lucide-react';
 
 const AdminSidebar = ({
@@ -20,6 +22,7 @@ const AdminSidebar = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isNotulis } = useAuth();
 
   const isRapatPath = location.pathname.startsWith('/admin/rapat');
 
@@ -29,6 +32,14 @@ const AdminSidebar = ({
     }
     if (location.pathname !== '/admin/rapat') {
       navigate('/admin/rapat');
+    }
+    if (viewKey === 'jadwal') {
+      setTimeout(() => {
+        const el = document.getElementById('jadwal-rapat-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } else if (viewKey === 'beranda') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     if (setIsMobileOpen) setIsMobileOpen(false);
   };
@@ -71,9 +82,17 @@ const AdminSidebar = ({
               <h2 className="text-[15px] font-bold text-white tracking-tight">
                 Diskominfosantik
               </h2>
-              <p className="text-[12px] text-slate-300 font-normal">
-                Kabupaten Bekasi
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isNotulis
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                  }`}
+                >
+                  {isNotulis ? 'Notulis Rapat' : 'Administrator'}
+                </span>
+              </div>
             </div>
             {/* Mobile Close Button */}
             <button
@@ -112,13 +131,13 @@ const AdminSidebar = ({
               <span>Jadwal Rapat</span>
             </button>
 
-            {/* Ruang Rapat */}
+            {/* Notulen */}
             <button
-              onClick={() => handleMenuClick('master-ruang')}
+              onClick={() => handleMenuClick('notulen')}
               className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
             >
-              <Building2 size={19} className="text-slate-300" />
-              <span>Ruang Rapat</span>
+              <FileText size={19} className="text-slate-300" />
+              <span>Notulen</span>
             </button>
 
             {/* Peserta */}
@@ -130,23 +149,37 @@ const AdminSidebar = ({
               <span>Peserta</span>
             </button>
 
-            {/* Notulen */}
-            <button
-              onClick={() => handleMenuClick('notulen')}
-              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-            >
-              <FileText size={19} className="text-slate-300" />
-              <span>Notulen</span>
-            </button>
+            {/* Menu Khusus Admin */}
+            {!isNotulis && (
+              <>
+                {/* Ruang Rapat */}
+                <button
+                  onClick={() => handleMenuClick('master-ruang')}
+                  className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                >
+                  <Building2 size={19} className="text-slate-300" />
+                  <span>Ruang Rapat</span>
+                </button>
 
-            {/* Laporan */}
-            <button
-              onClick={() => handleMenuClick('laporan')}
-              className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-            >
-              <BarChart3 size={19} className="text-slate-300" />
-              <span>Laporan</span>
-            </button>
+                {/* Kategori Agenda */}
+                <button
+                  onClick={() => handleMenuClick('master-kategori')}
+                  className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                >
+                  <Tag size={19} className="text-slate-300" />
+                  <span>Kategori Agenda</span>
+                </button>
+
+                {/* Laporan */}
+                <button
+                  onClick={() => handleMenuClick('laporan')}
+                  className="w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                >
+                  <BarChart3 size={19} className="text-slate-300" />
+                  <span>Laporan</span>
+                </button>
+              </>
+            )}
 
             {/* Pengaturan */}
             <button

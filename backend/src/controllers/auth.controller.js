@@ -24,7 +24,7 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: admin.id, username: admin.username },
+      { id: admin.id, username: admin.username, role: admin.role, nama: admin.nama },
       process.env.JWT_SECRET || 'secret_key_sementara',
       { expiresIn: '1d' }
     );
@@ -34,7 +34,9 @@ const login = async (req, res) => {
       token,
       admin: {
         id: admin.id,
-        username: admin.username
+        username: admin.username,
+        role: admin.role,
+        nama: admin.nama
       }
     });
 

@@ -18,4 +18,17 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+const requireRole = (allowedRoles = ['ADMIN']) => {
+  return (req, res, next) => {
+    if (!req.admin || !allowedRoles.includes(req.admin.role)) {
+      return res.status(403).json({
+        error: `Akses ditolak: Aksi ini hanya dapat dilakukan oleh peran [${allowedRoles.join(', ')}]`
+      });
+    }
+    next();
+  };
+};
+
+authMiddleware.requireRole = requireRole;
+
 module.exports = authMiddleware;

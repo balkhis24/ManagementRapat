@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(() => localStorage.getItem('adminToken') || 'session-admin-bekasi');
+  const [token, setToken] = useState(() => localStorage.getItem('adminToken') || null);
   const [admin, setAdmin] = useState(() => {
     try {
       const stored = localStorage.getItem('adminInfo');
-      return stored ? JSON.parse(stored) : { username: 'admin' };
+      return stored ? JSON.parse(stored) : null;
     } catch {
-      return { username: 'admin' };
+      return null;
     }
   });
 
@@ -28,9 +28,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAuthenticated = !!token;
+  const isNotulis = admin?.role === 'NOTULIS';
+  const isAdmin = admin?.role === 'ADMIN' || (!admin?.role && isAuthenticated);
 
   return (
-    <AuthContext.Provider value={{ token, admin, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ token, admin, login, logout, isAuthenticated, isNotulis, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,8 +8,9 @@ const getNotulenByRapat = async (req, res) => {
       where: { rapat_id: parseInt(rapatId) }
     });
     
+    // Jika belum ada notulen, kembalikan null dengan status 200 (bukan 404 error)
     if (!notulen) {
-      return res.status(404).json({ error: 'Notulen belum dibuat untuk rapat ini' });
+      return res.json(null);
     }
     
     res.json(notulen);

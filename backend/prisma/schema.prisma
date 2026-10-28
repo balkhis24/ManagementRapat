@@ -11,6 +11,8 @@ model Admin {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   password  String
+  role      String   @default("ADMIN")
+  nama      String?  @default("Administrator")
   createdAt DateTime @default(now())
 }
 
